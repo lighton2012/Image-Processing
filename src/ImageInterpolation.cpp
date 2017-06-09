@@ -229,7 +229,7 @@ void bicubicInterpolate(const uchar input[], int xSize, int ySize, uchar output[
 	delete[]vExt;
 }
 
-void imageRotate(const uchar input[], int xSize, int ySize, uchar output[], int m, int n, double angle)
+void imageRotate(uchar input[], int xSize, int ySize, uchar output[], int m, int n, double angle)
 {
 	int newPosX;
 	int	newPosY;
@@ -244,26 +244,42 @@ void imageRotate(const uchar input[], int xSize, int ySize, uchar output[], int 
 	uchar* yValNew = new uchar[xSize * ySize];
 	char* uValNew = new char[xSize * ySize / 4];
 	char* vValNew = new char[xSize * ySize / 4];
-	
+
 	double theta = 3.14 * angle / 180;
-	
+
 	for (int i = 0; i < ySize; i++)
 	{
 		for (int j = 0; j < xSize; j++)
 		{
-			newPosX = round(j * cos(theta) - i * sin(theta) - m * cos(theta) + n * sin(theta) + m);
-			newPosY = round(i * cos(theta) + j * sin(theta) - m * sin(theta) - n * cos(theta) + n);
-	
+			newPosY = (int)(i * cos(theta) + j * sin(theta) - m * sin(theta) - n * cos(theta) + n);
+			newPosX = (int)(j * cos(theta) - i * sin(theta) - m * cos(theta) + n * sin(theta) + m);
+
 			if (newPosY < 0 || newPosY > ySize - 1 || newPosX < 0 || newPosX > xSize - 1) {
 				yValNew[i * xSize + j] = 0;
 			}
 			else {
 				yValNew[i * xSize + j] = yVal[newPosY * xSize + newPosX];
 			}
+
+			
+			if (i < ySize / 2 && j < xSize / 2) {
+				newPosY = (int)(i * cos(theta) + j * sin(theta) - m / 2 * sin(theta) - n / 2 * cos(theta) + n / 2);
+				newPosX = (int)(j * cos(theta) - i * sin(theta) - m / 2 * cos(theta) + n / 2 * sin(theta) + m / 2);
+
+				if (newPosY < 0 || newPosY > ySize / 2 - 1 || newPosX < 0 || newPosX > xSize / 2- 1) {
+					uValNew[i * xSize / 2 + j] = 0;
+					vValNew[i * xSize / 2 + j] = 0;
+				}
+				else {
+					uValNew[i * xSize / 2 + j] = uVal[newPosY * xSize / 2 + newPosX];
+					vValNew[i * xSize / 2 + j] = vVal[newPosY * xSize / 2 + newPosX];
+				}
+			}
+			
 		}
 	}
 
-	YUV420toRGB(yValNew, uValNew, vValNew, xSize, xSize, output);
+	YUV420toRGB(yValNew, uValNew, vValNew, xSize, ySize, output);
 
 	delete[]yVal;
 	delete[]uVal;
@@ -295,15 +311,22 @@ void imageRotateBilinear(const uchar input[], int xSize, int ySize, uchar output
 	char* uValNew = new char[xSize * ySize / 4];
 	char* vValNew = new char[xSize * ySize / 4];
 
+	uchar *yExt = new uchar[(xSize + 2) * (ySize + 2)];
+	char *uExt = new char[(xSize + 8) * (ySize + 8) / 4];
+	char *vExt = new char[(xSize + 8) * (ySize + 8) / 4];
+
+	extendBorders(yVal, xSize, ySize, yExt, 1);
+	extendBorders(uVal, xSize / 2, ySize / 2, uExt, 1);
+	extendBorders(vVal, xSize / 2, ySize / 2, vExt, 1);
+
 	double theta = 3.14 * angle / 180;
 
 	for (int i = 0; i < ySize; i++)
 	{
 		for (int j = 0; j < xSize; j++)
 		{
-			newPosX = round(j * cos(theta) - i * sin(theta) - m * cos(theta) + n * sin(theta) + m);
-			newPosY = round(i * cos(theta) + j * sin(theta) - m * sin(theta) - n * cos(theta) + n);
-
+			newPosY = (i * cos(theta) + j * sin(theta) - m * sin(theta) - n * cos(theta) + n);
+			newPosX = (j * cos(theta) - i * sin(theta) - m * cos(theta) + n * sin(theta) + m);
 
 			closestFirstY = floor(newPosY);
 			closestFirstX = floor(newPosX);
@@ -313,24 +336,51 @@ void imageRotateBilinear(const uchar input[], int xSize, int ySize, uchar output
 			distY = newPosY - closestFirstY;
 			distX = newPosX - closestFirstX;
 
-			if (newPosY < 0 || newPosY > ySize - 1 || newPosX < 0 || newPosX > xSize - 1) {
+			if (closestFirstY < 0 || closestFirstY > ySize - 1 || closestFirstX < 0 || closestFirstX > xSize - 1) {
 				yValNew[i * xSize + j] = 0;
 			}
 			else {
 				yValNew[i * xSize + j] = 
-					(distY - 1) * (distX - 1) * yVal[closestFirstY * xSize + closestFirstX]
-					+ (distY - 1) * distX * yVal[closestFirstY * xSize + closestSecondX]
-					+ distY * (distX - 1) * yVal[closestSecondY * xSize + closestFirstX]
-					+ distY * distX * yVal[closestSecondY * xSize + closestSecondX];
+					(1 - distY) * (1 - distX) * yExt[closestFirstY * (xSize + 2) + closestFirstX]
+					+ (1 - distY) * distX * yExt[closestFirstY * (xSize + 2) + closestSecondX]
+					+ distY * (1 - distX) * yExt[closestSecondY * (xSize + 2) + closestFirstX]
+					+ distY * distX * yExt[closestSecondY * (xSize + 2) + closestSecondX];
 			}
-			/*
-			else {
-				yValNew[i * xSize + j] = yVal[newPosY * xSize + newPosX];
-			}*/
+			
+			if (i < ySize / 2 && j < xSize / 2) {
+				newPosY = (i * cos(theta) + j * sin(theta) - m / 2 * sin(theta) - n / 2 * cos(theta) + n / 2);
+				newPosX = (j * cos(theta) - i * sin(theta) - m / 2 * cos(theta) + n / 2 * sin(theta) + m / 2);
+
+				closestFirstY = floor(newPosY);
+				closestFirstX = floor(newPosX);
+				closestSecondY = closestFirstY + 1;
+				closestSecondX = closestFirstX + 1;
+
+				distY = newPosY - closestFirstY;
+				distX = newPosX - closestFirstX;
+
+				if (closestFirstY < 0 || closestFirstY > ySize / 2 - 1 || closestFirstX < 0 || closestFirstX > xSize / 2- 1) {
+					uValNew[i * xSize / 2 + j] = 0;
+					vValNew[i * xSize / 2 + j] = 0;
+				}
+				else {
+					uValNew[i * xSize / 2 + j] =
+						(1 - distY) * (1 - distX) * uExt[closestFirstY * (xSize / 2 + 2) + closestFirstX]
+						+ (1 - distY) * distX * uExt[closestFirstY * (xSize / 2 + 2) + closestSecondX]
+						+ distY * (1 - distX) * uExt[closestSecondY * (xSize / 2 + 2) + closestFirstX]
+						+ distY * distX * uExt[closestSecondY * (xSize / 2 + 2) + closestSecondX];
+
+					vValNew[i * xSize / 2 + j] =
+						(1 - distY) * (1 - distX) * vExt[closestFirstY * (xSize / 2 + 2) + closestFirstX]
+						+ (1 - distY) * distX * vExt[closestFirstY * (xSize / 2 + 2) + closestSecondX]
+						+ distY * (1 - distX) * vExt[closestSecondY * (xSize / 2 + 2) + closestFirstX]
+						+ distY * distX * vExt[closestSecondY * (xSize / 2 + 2) + closestSecondX];
+				}
+			}
 		}
 	}
 
-	YUV420toRGB(yValNew, uValNew, vValNew, xSize, xSize, output);
+	YUV420toRGB(yValNew, uValNew, vValNew, xSize, ySize, output);
 
 	delete[]yVal;
 	delete[]uVal;
@@ -338,6 +388,9 @@ void imageRotateBilinear(const uchar input[], int xSize, int ySize, uchar output
 	delete[]yValNew;
 	delete[]uValNew;
 	delete[]vValNew;
+	delete[]yExt;
+	delete[]uExt;
+	delete[]vExt;
 }
 
 int divisibleByN(int sizeNum, int n) {

@@ -16,7 +16,7 @@ uchar cubicInterpolate(uchar p[4], double x);
 
 void bicubicInterpolate(const uchar input[], int xSize, int ySize, uchar output[], int newXSize, int newYSize);
 
-void imageRotate(const uchar input[], int xSize, int ySize, uchar output[], int m, int n, double angle);
+void imageRotate(uchar input[], int xSize, int ySize, uchar output[], int m, int n, double angle);
 
 void imageRotateBilinear(const uchar input[], int xSize, int ySize, uchar output[], int m, int n, double angle);
 

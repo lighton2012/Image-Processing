@@ -13,13 +13,17 @@ void imageProcessingFun(const QString& progName, QImage* const outImgs, const QI
 	int X_SIZE_NEW;
 	int Y_SIZE_NEW;
 
-	X_SIZE_NEW = divisibleByN(X_SIZE * params[1], 4);
-	Y_SIZE_NEW = divisibleByN(Y_SIZE * params[0], 4);
+	if (progName != "Rotation" && progName != "Rotation Bilinear") {
+		X_SIZE_NEW = divisibleByN(X_SIZE * params[1], 4);
+		Y_SIZE_NEW = divisibleByN(Y_SIZE * params[0], 4);
+	
+		new (outImgs) QImage(X_SIZE_NEW, Y_SIZE_NEW, inImgs->format());
+	}
+	else {
+		new (outImgs) QImage(X_SIZE, Y_SIZE, inImgs->format());
+	}
 
 	//outImgs = new QImage(X_SIZE_NEW, Y_SIZE_NEW, inImgs->format);
-
-	new (outImgs) QImage(X_SIZE_NEW, Y_SIZE_NEW, inImgs->format());
-
 
 	if(progName == "Sample and hold") 
 	{	
@@ -59,7 +63,7 @@ void imageProcessingFun(const QString& progName, QImage* const outImgs, const QI
 
 		/* TO DO: Perform image rotation */
 		
-		imageRotate(inImgs->bits(), X_SIZE, Y_SIZE, outImgs->bits(), Y_SIZE / 2, X_SIZE / 2, params[0]);
+		imageRotate((uchar*)inImgs->bits(), X_SIZE, Y_SIZE, outImgs->bits(), X_SIZE / 2, Y_SIZE / 2, params[0]);
 	}
 	else if (progName == "Rotation Bilinear") 
 	{
@@ -69,7 +73,7 @@ void imageProcessingFun(const QString& progName, QImage* const outImgs, const QI
 
 		/* TO DO: Perform image rotation with bilinear interpolation */
 		
-		imageRotateBilinear(inImgs->bits(), X_SIZE, Y_SIZE, outImgs->bits(), Y_SIZE / 2, X_SIZE / 2, params[0]);
+		imageRotateBilinear(inImgs->bits(), X_SIZE, Y_SIZE, outImgs->bits(), X_SIZE / 2, Y_SIZE / 2, params[0]);
 	}
 
 }
