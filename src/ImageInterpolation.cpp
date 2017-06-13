@@ -90,8 +90,8 @@ void bilinearInterpolate(const uchar input[], int xSize, int ySize, uchar output
 				
 			
 			if (i < (newYSize / 2) && j < (newXSize / 2)) {
-				secondNewY = firstNewY < ySize / 2 - 1 ? firstNewY++ : firstNewY;
-				secondNewX = firstNewX < xSize / 2- 1 ? firstNewX++ : firstNewX;
+				secondNewY = firstNewY < ySize / 2 - 1 ? firstNewY + 1 : firstNewY;
+				secondNewX = firstNewX < xSize / 2- 1 ? firstNewX + 1 : firstNewX;
 				
 				uValNew[i * newXSize / 2 + j] = 
 					(1 - distY) * (1 - distX) * uVal[firstNewY * xSize / 2 + firstNewX]
@@ -119,7 +119,16 @@ void bilinearInterpolate(const uchar input[], int xSize, int ySize, uchar output
 }
 
 uchar cubicInterpolate(uchar p[4], double x) {
-	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+	int res = p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+
+	if (res > 255) {
+		res = 255;
+	}
+	else if (res < 0) {
+		res = 0;
+	}
+
+	return res;
 }
 
 char cubicInterpolate(char p[4], double x) {
@@ -251,8 +260,8 @@ void imageRotate(uchar input[], int xSize, int ySize, uchar output[], int m, int
 	{
 		for (int j = 0; j < xSize; j++)
 		{
-			newPosY = (int)(i * cos(theta) + j * sin(theta) - m * sin(theta) - n * cos(theta) + n);
-			newPosX = (int)(j * cos(theta) - i * sin(theta) - m * cos(theta) + n * sin(theta) + m);
+			newPosY = round(i * cos(theta) + j * sin(theta) - m * sin(theta) - n * cos(theta) + n);
+			newPosX = round(j * cos(theta) - i * sin(theta) - m * cos(theta) + n * sin(theta) + m);
 
 			if (newPosY < 0 || newPosY > ySize - 1 || newPosX < 0 || newPosX > xSize - 1) {
 				yValNew[i * xSize + j] = 0;
@@ -263,8 +272,8 @@ void imageRotate(uchar input[], int xSize, int ySize, uchar output[], int m, int
 
 			
 			if (i < ySize / 2 && j < xSize / 2) {
-				newPosY = (int)(i * cos(theta) + j * sin(theta) - m / 2 * sin(theta) - n / 2 * cos(theta) + n / 2);
-				newPosX = (int)(j * cos(theta) - i * sin(theta) - m / 2 * cos(theta) + n / 2 * sin(theta) + m / 2);
+				newPosY = round(i * cos(theta) + j * sin(theta) - m / 2 * sin(theta) - n / 2 * cos(theta) + n / 2);
+				newPosX = round(j * cos(theta) - i * sin(theta) - m / 2 * cos(theta) + n / 2 * sin(theta) + m / 2);
 
 				if (newPosY < 0 || newPosY > ySize / 2 - 1 || newPosX < 0 || newPosX > xSize / 2- 1) {
 					uValNew[i * xSize / 2 + j] = 0;
